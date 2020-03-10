@@ -1,1 +1,5 @@
 /node-modules
+client_secret.json
+google-outh-token.json
+/google/account_service.json
+/google/client_oauth.json

@@ -2,11 +2,12 @@ const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
 const credentials = require('./account_service.json');
-const mock = require('./mock.json');
 
 const {client_email, private_key} = credentials;
 
 const SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets'];
+// const root = __dirname + '/mock.json';
+// console.log(fs.createReadStream(root))
 
 const client = new google.auth.JWT(
   client_email,
@@ -42,7 +43,7 @@ async function createFileDrive() {
     } else {
       console.log('Folder Id: ', file.data.id);
       getPermission(file.data.id);
-      await insertImageFile(file.data.id);
+      await createFileExcel(file.data.id);
       return file.data.id;
     }
   });
@@ -69,38 +70,20 @@ function getPermission(fileId) {
   });
 }
 
-function getPermissionFile(fileId) {
-  const permission = {
-    'type': 'user',
-    'role': 'writer',
-    'emailAddress': 'janetquispeu@gmail.com'
-  };
-  drive.permissions.create({
-    resource: permission,
-    fileId: fileId,
-    fields: '*'
-  }, async function (err, res) {
-    if (err) {
-      console.error(err);
-    } else {
-      console.log('Permission ID: ', res.data.id);
-      return res.data.id;
-    }
-  });
-}
-
-function insertImageFile(fileId) {
-  // const root = __dirname + '/files/photo.jpg';
+function createFileExcel(fileId) {
+  const root = __dirname + '/mock.json';
+  const data = require("./mock.json");
   const  fileMetadataImage = {
-    'name': 'Reporte de ventas.xls',
+    name: 'Reporte de ventas',
+    mimeType: 'application/vnd.google-apps.spreadsheet',
     parents: [fileId]
   };
-
+  
   const media = {
-    mimeType: 'application/vnd.google-apps.spreadsheet',
-    // body: mock
+    mimeType: 'application/octet-stream',
+    body: [["nombre"]]
   };
-
+  console.log(drive.files.create);
   drive.files.create({
     resource: fileMetadataImage,
     media: media,
@@ -110,24 +93,20 @@ function insertImageFile(fileId) {
       console.error(err);
     } else {
       console.log('File Id: ', file.data.id);
-      getPermissionFile(file.data.id);
+      insertDataFileExcel(file.data.id);
     }
   });
 }
 
-// async function insertFileExcel() {
-//   const sheets = google.sheets('v4');
-//   const request = {
-//     resource: {
-//       properties: {
-//         title: "Reporte de ventas"
-//       }
-//     },
+async function insertDataFileExcel(spreadsheetId) {
+  const sheets = google.sheets('v4');
+  const request = {
+    spreadsheetId,
+    range: "A2",
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [["nombre"], ["Apellido"]] },
+    auth: client,
+  }
 
-//     auth: client,
-//   };
-//   const response = (await sheets.spreadsheets.create(request)).data;
-//   console.log(response);
-
-//   getPermission(response.spreadsheetId);
-// }
+  await sheets.spreadsheets.values.update(request);
+}
